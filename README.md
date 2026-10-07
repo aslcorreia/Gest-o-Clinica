@@ -12,7 +12,7 @@ Criar um Worker ligado ao GitHub:
 
 | Campo | Valor |
 | --- | --- |
-| Nome do Worker | `linguar-clinica` |
+| Nome do Worker | `gest-o-clinica` |
 | Repositório | `aslcorreia/Gest-o-Clinica` |
 | Branch | `main` |
 | Diretório raiz | `/` (raiz do repositório) |
@@ -22,10 +22,10 @@ Criar um Worker ligado ao GitHub:
 
 A configuração pública do Supabase está em `wrangler.jsonc`. Adicionar **no Worker, Settings → Variables and Secrets**, o segredo `SUPABASE_SECRET_KEY` do projeto Linguar. Não usar a chave da Casa em Dia nem colocar a chave secreta no GitHub ou num campo público.
 
-Depois de obter o endereço HTTPS do Worker, em Supabase **Authentication → URL Configuration**:
+O endereço escolhido na Cloudflare é `https://gest-o-clinica.as-lcorreia.workers.dev`. Em Supabase **Authentication → URL Configuration**:
 
-- Site URL: endereço HTTPS do Worker.
-- Redirect URLs: endereço HTTPS do Worker seguido de `/auth/confirm`.
+- Site URL: `https://gest-o-clinica.as-lcorreia.workers.dev`.
+- Redirect URLs: `https://gest-o-clinica.as-lcorreia.workers.dev/auth/confirm`.
 
 A entrada usa o link enviado pelo Supabase. Não exige alterar o modelo de email. O campo de código funciona se o email incluir um código. A entrada por palavra-passe destina-se a contas que já tenham uma palavra-passe no Supabase.
 

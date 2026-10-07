@@ -17,7 +17,7 @@ TypeScript e build de produção passaram. Suites de regras e integração passa
 
 ## Por executar
 
-1. Ligar este branch ao Worker `linguar-clinica` na Cloudflare.
+1. Ligar a branch `main` ao Worker `gest-o-clinica` na Cloudflare.
 2. Instalar `SUPABASE_SECRET_KEY` como segredo do Worker, obtido do projeto Linguar.
 3. Definir os URLs reais de entrada no Supabase Auth.
 4. Testar login real da direção, SMTP para equipa/famílias, upload e publicação seletiva de um sumário.
