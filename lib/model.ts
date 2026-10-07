@@ -31,6 +31,6 @@ export function sampleRecords(date = new Date().toISOString().slice(0, 10)): Rec
     add('material0', 'material', { name: 'Cartões de discriminação auditiva', category: 'Materiais', district: districts[0], body: 'Selecione os pares-alvo a partir do banco editorial D2. Recurso de demonstração.', quantity: 8, status: 'Disponível', visibility: 'Clínica' });
     add('feedback0', 'feedback', { name: 'Família · setembro', therapist: 't1', audience: 'Pais', score: 9, notes: 'Exemplo de feedback', date });
     add('feedback1', 'feedback', { name: 'Criança · setembro', therapist: 't1', audience: 'Criança', score: 8, notes: 'Escala de demonstração; não é avaliação clínica', date });
-    add('course0', 'course', { name: 'Integração na Linguar', body: 'Consultar os painéis e as regras de prescrição nos recursos do projeto.', hours: 2, progress: 0, status: 'Por iniciar' });
+    add('course0', 'course', { name: 'Integração na clínica Bem Crescer', body: 'Consultar os painéis e as regras de prescrição nos recursos do projeto.', hours: 2, progress: 0, status: 'Por iniciar' });
     return rows;
 }

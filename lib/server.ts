@@ -35,7 +35,7 @@ export async function ensureClinic(a: Identity) {
  const now=new Date().toISOString();
  // A new clinic starts with the owner profile and no patient examples.
  await d.batch([
-  d.prepare('INSERT OR IGNORE INTO clinics(id,owner,name,created) VALUES(?,?,?,?)').bind(a.tenant,a.user.userId,'Clínica Linguar',now),
+  d.prepare('INSERT OR IGNORE INTO clinics(id,owner,name,created) VALUES(?,?,?,?)').bind(a.tenant,a.user.userId,'Bem Crescer',now),
   d.prepare('INSERT OR IGNORE INTO records(id,clinic,kind,data,author,version,updated) VALUES(?,?,?,?,?,1,?)').bind(a.tenant+':'+'owner-profile',a.tenant,'team',JSON.stringify({name:a.user.displayName||'Responsável da clínica',email:a.user.email,status:'Ativo'}),a.user.userId,now)
  ]);
  await ensureOwnerProfile(a);
@@ -45,6 +45,6 @@ async function ensureOwnerProfile(a:Identity){if(!a.owner||!clinicOwnerEmail())r
 export async function allRecords(a: Identity): Promise<Rec[]> { const r = await db().prepare('SELECT * FROM records WHERE clinic = ? ORDER BY updated DESC').bind(a.tenant).all<any>(); return tagExampleRecords(r.results.map(x => ({ id: x.id.slice(a.tenant.length + 1), kind: x.kind, data: JSON.parse(x.data), version: x.version, author: x.author }))); }
 export { visible, mayWrite } from './access';
 export function failure(e: unknown) { if (e instanceof AppError)
-    return Response.json({ error: e.message }, { status: e.status }); console.error('Linguar: operação indisponível'); return Response.json({ error: 'Não foi possível concluir. As alterações no formulário foram preservadas.' }, { status: 503 }); }
+    return Response.json({ error: e.message }, { status: e.status }); console.error('Bem Crescer: operação indisponível'); return Response.json({ error: 'Não foi possível concluir. As alterações no formulário foram preservadas.' }, { status: 503 }); }
 export function checkOrigin(req: Request) { const o = req.headers.get('origin'); if (o && o !== new URL(req.url).origin)
     throw new AppError('Origem não permitida.', 403); }

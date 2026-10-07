@@ -1,4 +1,4 @@
-# Linguar Clínica
+# Bem Crescer
 
 Aplicação independente para direção clínica, terapeutas e famílias. Crianças e responsáveis, agenda, check-in, planos e objetivos, sumários de sessões, preparação da sessão seguinte, documentos privados e partilha seletiva com os pais. Sem integração com o jogo Linguar ou Cidade dos Sons.
 

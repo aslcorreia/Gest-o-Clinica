@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Linguar · Área profissional",
+  title: "Bem Crescer · Área profissional",
   description: "Gestão clínica e acompanhamento terapêutico.",
   other: {
     "codex-preview": "development",
