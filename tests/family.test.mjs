@@ -140,6 +140,38 @@ const fixtures=sampleRecords('2026-01-01');fixtures.push({id:'real-profile',kind
 const tagged=tagExampleRecords(fixtures),daily=dailyRecords(tagged);assert.equal(tagged.find(x=>x.id==='test-child-note').data.isTest,true);assert.deepEqual(daily.map(x=>x.id),['real-profile','real-patient']);assert.equal(fixtures.find(x=>x.id==='p0').data.isTest,undefined);
 console.log('Daily team access passed: explicit owner, unknown-account denial, atomic staff setup, no shared professional accounts, role isolation, colleague data minimization, first entry, own check-in, inactivation/revocation and example separation.');
 
+// Incomplete imported records remain editable without inventing age or assignment.
+realOwner();
+const {patientAge}=await import(patientsModule);
+for(const age of [undefined,null,'','   '])assert.equal(patientAge({age}),null);
+assert.equal(patientAge({age:0}),0);assert.equal(patientAge({age:'6'}),6);
+let importedData={name:'Cadastro por completar',age:null,therapist:'',status:'Ativo',guardians:[],notes:'Confirmar dados com a família.',followUpStatus:'Por confirmar'};
+r=await save('imported-incomplete','patient',importedData);assert.equal(r.status,200);
+assert.equal(r.data.record.data.age,null);assert.equal(r.data.record.data.therapist,'');assert.equal(r.data.record.data.familyId,'imported-incomplete');
+importedData={...r.data.record.data,notes:'Informação de origem preservada.'};
+r=await save('imported-incomplete','patient',importedData,1);assert.equal(r.status,200);assert.equal(r.data.record.data.followUpStatus,'Por confirmar');assert.equal(r.data.record.data.notes,importedData.notes);
+assert.equal(sqlite.prepare('SELECT COUNT(*) AS n FROM family_access WHERE patient_id=?').get('imported-incomplete').n,0);
+staff();r=await call(dataAPI,'GET','/api/data');assert.equal(r.data.records.some(x=>x.id==='imported-incomplete'),false);
+assert.equal((await save('imported-incomplete','patient',{...importedData,therapist:'actual-therapist'},2)).status,403);
+assert.equal((await save('staff-unassigned','patient',{name:'Sem atribuição',age:null,therapist:''})).status,403);
+assert.equal((await save('staff-other','patient',{name:'De outro profissional',age:null,therapist:'owner-profile'})).status,403);
+assert.equal((await save('staff-own-incomplete','patient',{name:'Cadastro próprio por completar',therapist:'actual-therapist'})).status,200);
+realOwner();
+for(const [i,age] of [undefined,'','   '].entries()){
+ r=await save('missing-age-'+i,'patient',{name:'Idade por preencher '+i,age,therapist:''});assert.equal(r.status,200);assert.equal(r.data.record.data.age,null);
+}
+for(const [i,age] of [-1,121,'not-a-number',true,[],{},'Infinity','0x10'].entries())assert.equal((await save('invalid-age-'+i,'patient',{name:'Idade inválida '+i,age,therapist:''})).status,400);
+r=await save('newborn','patient',{name:'Idade zero confirmada',age:0,therapist:''});assert.equal(r.status,200);assert.equal(r.data.record.data.age,0);
+r=await save('numeric-age','patient',{name:'Idade indicada como texto',age:'6',therapist:''});assert.equal(r.status,200);assert.equal(r.data.record.data.age,6);
+assert.equal((await save('invalid-assignment','patient',{name:'Atribuição inexistente',therapist:'unknown-therapist'})).status,400);
+assert.equal((await save('inactive-profile','team',{name:'Perfil inativo',status:'Inativo'})).status,200);
+assert.equal((await save('inactive-assignment','patient',{name:'Atribuição inativa',therapist:'inactive-profile'})).status,400);
+r=await save('imported-incomplete','patient',{...importedData,therapist:'actual-therapist'},2);assert.equal(r.status,200);importedData=r.data.record.data;
+staff();r=await call(dataAPI,'GET','/api/data');assert.ok(r.data.records.some(x=>x.id==='imported-incomplete'));
+assert.equal((await save('imported-incomplete','patient',{...importedData,therapist:''},3)).status,403);
+realOwner();
+console.log('Incomplete intake passed: unknown age and therapist remain blank, later edits and assignment work, invalid values are rejected, and staff and family access stay scoped.');
+
 // Child/family intake, multiple guardians, siblings and per-child consent.
 realOwner();
 const contacts=[{id:'mother',name:'Responsável A',relationship:'Mãe',email:'  MOM@example.invalid ',phone:'210000000',shareAuthorized:'Sim',consentNote:'Autorização registada'},{id:'father',name:'Responsável B',relationship:'Pai',email:'dad@example.invalid',phone:'',shareAuthorized:'Sim',consentNote:'Autorização registada'}];

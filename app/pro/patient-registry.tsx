@@ -20,12 +20,12 @@ export function PatientFields({record,data,change}:{record:Rec;data:Record<strin
   <fieldset><legend>Identificação da criança</legend><div className="form-grid">
    <label>Nome completo *<Input required maxLength={160} autoComplete="off" value={data.name||''} onChange={e=>update('name',e.target.value)}/></label>
    <label>Data de nascimento<Input type="date" max={new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Lisbon'}).format(new Date())} value={data.birthDate||''} onChange={e=>update('birthDate',e.target.value)}/></label>
-   {!data.birthDate&&<label>Idade (se não souber a data) *<Input type="number" min={0} max={120} required value={data.age??''} onChange={e=>update('age',e.target.value===''?'':Number(e.target.value))}/></label>}
-   <label>Terapeuta responsável *<Pick label="Terapeuta responsável" value={data.therapist} change={(v:string)=>update('therapist',v)} options={p.records.filter(r=>r.kind==='team'&&!['Inativo','Arquivado'].includes(r.data.status)&&(p.director||r.id===p.me)).map(r=>({value:r.id,label:r.data.name}))}/></label>
+   {!data.birthDate&&<label>Idade (se souber)<Input type="number" min={0} max={120} value={data.age??''} onChange={e=>update('age',e.target.value===''?'':Number(e.target.value))}/></label>}
+   <label>Terapeuta responsável{!p.director?' *':''}<Pick label="Terapeuta responsável" value={data.therapist} change={(v:string)=>update('therapist',v)} options={p.records.filter(r=>r.kind==='team'&&!['Inativo','Arquivado'].includes(r.data.status)&&(p.director||r.id===p.me)).map(r=>({value:r.id,label:r.data.name}))}/></label>
    <label>Estado<Pick value={data.status||'Ativo'} change={(v:string)=>update('status',v)} options={['Ativo','Arquivado']}/></label>
    <label>Início do acompanhamento<Input type="date" value={data.startDate||''} onChange={e=>update('startDate',e.target.value)}/></label>
    <label>Fim do acompanhamento<Input type="date" value={data.endDate||''} onChange={e=>update('endDate',e.target.value)}/></label>
-  </div></fieldset>
+  </div><p className="small">Pode completar a data de nascimento ou a idade mais tarde.{p.director?' Os acompanhamentos sem terapeuta ficam disponíveis apenas à direção até serem atribuídos.':''}</p></fieldset>
   <fieldset><legend>Família e responsáveis</legend><div className="form-grid">
    <label>Associar a uma família já registada<Pick label="Família existente" value={data.familyId===record.id?'':data.familyId||''} change={selectFamily} options={families.map(r=>({value:familyKey(r),label:(r.data.familyName||'Família de '+r.data.name)+' · '+r.data.name}))}/></label>
    <label>Nome da família (opcional)<Input maxLength={160} value={data.familyName||''} placeholder="Nome para identificar a família" onChange={e=>update('familyName',e.target.value)}/></label>
@@ -42,6 +42,8 @@ export function PatientFields({record,data,change}:{record:Rec;data:Record<strin
   <p className="small">A direção ativa o painel de cada responsável na Área dos pais, após guardar a ficha.</p>
   </fieldset>
   <fieldset><legend>Acompanhamento e contactos de apoio</legend><div className="form-grid">
+   {data.followUpStatus&&<p className="full small">Estado no registo de origem: {data.followUpStatus}</p>}
+   <label className="full">Notas do acompanhamento<Textarea maxLength={20000} value={data.notes||''} onChange={e=>update('notes',e.target.value)}/></label>
    <label className="full">Motivo do acompanhamento / hipótese de diagnóstico<Textarea value={data.diagnosis||''} onChange={e=>update('diagnosis',e.target.value)}/></label>
    <label className="full">Metas iniciais<Textarea value={data.objectives||''} onChange={e=>update('objectives',e.target.value)}/></label>
    <label>Escola<Input value={data.school||''} onChange={e=>update('school',e.target.value)}/></label>
@@ -59,6 +61,8 @@ export function PatientContacts({patient}:{patient:Rec}){
  return <Card title={patient.data.familyName||'Família e contactos'} actions={<Button variant="outline" onClick={()=>p.open('patient',patient)}>Editar cadastro</Button>}>
   {guardians(patient.data).map(g=><article className="detail-box" key={g.id}><h3>{g.name} <Badge>{g.relationship}</Badge></h3><p>{g.email||'Sem email'} · {g.phone||'Sem telefone'}</p><p className="small">Partilha autorizada: {g.shareAuthorized}{g.consentNote?' · '+g.consentNote:''}</p></article>)}
   {!guardians(patient.data).length&&<Empty>Adicione os responsáveis desta criança.</Empty>}
+  {patient.data.followUpStatus&&<p>Estado no registo de origem: {patient.data.followUpStatus}</p>}
+  {patient.data.notes&&<section className="detail-box"><h3>Notas do acompanhamento</h3><p className="pre-wrap">{patient.data.notes}</p></section>}
   <p>Escola: {patient.data.school||'Por preencher'}</p><p>Emergência: {patient.data.emergency||'Por preencher'}</p>
   {!!siblings.length&&<><h3>Outras crianças desta família</h3><div className="actions">{siblings.map(r=><Button variant="outline" key={r.id} onClick={()=>p.patient(r)}>{r.data.name}</Button>)}</div></>}
  </Card>;

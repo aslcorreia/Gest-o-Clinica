@@ -12,12 +12,23 @@ export function ageAt(birthDate:string,date=new Intl.DateTimeFormat('sv-SE',{tim
  const age=Number(date.slice(0,4))-Number(birthDate.slice(0,4))-(date.slice(5)<birthDate.slice(5)?1:0);
  return age>=0&&age<=120?age:null;
 }
-export function patientAge(data:Record<string,any>){return data.birthDate?ageAt(data.birthDate):data.age??null}
+function optionalAge(value:unknown):number|null{
+ if(value===undefined||value===null||typeof value==='string'&&!value.trim())return null;
+ if((typeof value!=='number'&&typeof value!=='string')||typeof value==='string'&&!/^\d+(?:\.\d+)?$/.test(value.trim())||!Number.isFinite(Number(value))||Number(value)<0||Number(value)>120)throw Error('Idade inválida.');
+ return Number(value);
+}
+export function patientAge(data:Record<string,any>){
+ if(data.birthDate)return ageAt(data.birthDate);
+ try{return optionalAge(data.age)}catch{return null}
+}
 
 // Contacts belong to each child's record: linking siblings never transfers consent.
 export function normalizePatient(r:Rec,prev:Rec|undefined,rows:Rec[],actor:string){
  const d=r.data,fail=(message:string):never=>{throw Error(message)};
- if(d.birthDate){const age=ageAt(d.birthDate);if(age===null)fail('Data de nascimento inválida.');d.age=age;}
+ if(d.birthDate){const age=ageAt(d.birthDate);if(age===null)fail('Data de nascimento inválida.');d.age=age;}else d.age=optionalAge(d.age);
+ if(d.therapist!==undefined&&d.therapist!==null&&typeof d.therapist!=='string')fail('Selecione um terapeuta.');
+ d.therapist=String(d.therapist||'').trim();
+ if(d.therapist&&!rows.some(x=>x.kind==='team'&&x.id===d.therapist&&!['Inativo','Arquivado'].includes(x.data.status)))fail('Selecione um terapeuta.');
  if(!['Ativo','Arquivado'].includes(d.status||'Ativo'))fail('Estado do acompanhamento inválido.');
  d.name=String(d.name||'').trim();if(d.name.length>160)fail('Nome demasiado longo.');
  const key=String(d.familyId||prev?.data.familyId||r.id);

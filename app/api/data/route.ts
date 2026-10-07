@@ -53,10 +53,6 @@ export async function POST(req: Request) {
             throw new AppError('Datas de ausência inválidas.');
         if (r.kind === 'patient') {
             try{normalizePatient(r,prev,rows.filter(x=>visible(x,a,rows)),a.user.userId)}catch(e:any){throw new AppError(e.message)}
-            if (d.age===''||d.age===undefined||d.age===null||!Number.isFinite(Number(d.age)) || Number(d.age) < 0 || Number(d.age) > 120)
-                throw new AppError('Idade inválida.');
-            if (!rows.some(x => x.kind === 'team' && x.id === d.therapist && !['Inativo','Arquivado'].includes(x.data.status)))
-                throw new AppError('Selecione um terapeuta.');
             if (a.role !== 'director' && d.therapist !== a.therapist)
                 throw new AppError('Só pode gerir os seus pacientes.', 403);
         }
