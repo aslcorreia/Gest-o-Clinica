@@ -70,3 +70,5 @@ fields.communication[2].options?.push('Informação da família');
 fields.invoice.push({key:'paymentDate',label:'Data de pagamento / recebimento',type:'date'});
 fields.team.push({key:'endTime',label:'Hora prevista de saída',type:'time'});
 fields.team.push({key:'preparationEmail',label:'Receber aviso da preparação por email (requer acesso confirmado e serviço ativo)',options:['Não','Sim']});
+
+fields.appointment.push({key:'videoUrl',label:'Ligação de teleconsulta (Meet, Zoom, Teams ou Whereby)',type:'url'});

@@ -11,7 +11,7 @@
     "start": "wrangler dev --config dist/server/wrangler.json --local --ip 127.0.0.1 --inspector-port 0",
     "deploy": "wrangler deploy --config dist/server/wrangler.json",
     "typecheck": "tsc --noEmit",
-    "test": "node tests/access.test.mjs && node tests/workflows.test.mjs && node tests/care.test.mjs && node tests/family.test.mjs && node tests/supabase.test.mjs && node tests/clinical-reports.test.mjs && node tests/plan-session-ui.test.mjs && node tests/scheduling-equipment.test.mjs && node tests/operations-finance.test.mjs && node tests/care-scheduler.test.mjs"
+    "test": "node tests/access.test.mjs && node tests/workflows.test.mjs && node tests/care.test.mjs && node tests/family.test.mjs && node tests/supabase.test.mjs && node tests/clinical-reports.test.mjs && node tests/plan-session-ui.test.mjs && node tests/scheduling-equipment.test.mjs && node tests/operations-finance.test.mjs && node tests/care-scheduler.test.mjs && node tests/integrations.test.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

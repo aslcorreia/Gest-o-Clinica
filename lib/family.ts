@@ -1,3 +1,4 @@
+import {videoUrl} from './calendar';
 import {goalEvidence} from './care';
 import type {Rec} from './model';
 import {guardians,normalizeEmail,patientAge} from './patients';
@@ -12,7 +13,7 @@ export function familyView(rows:Rec[],patientId:string,email:string){
  return {
   patient:{id:p.id,name:String(p.data.name||''),age:patientAge(p.data),guardian:guardians(p.data).find(g=>normalizeEmail(g.email)===normalizeEmail(email))?.name||'',therapist:String(therapist?.data.name||'Equipa clínica'),specialty:String(therapist?.data.specialty||''),isTest:p.data.isTest===true},
   publications:publications.map(r=>({id:r.id,type:r.data.type,title:r.data.title,body:r.data.body,date:r.data.date,hasFile:!!r.data.fileId,read:reads.some(x=>x.data.publicationId===r.id)})),
-  appointments:rows.filter(r=>r.kind==='appointment'&&r.data.patientId===patientId).map(r=>({id:r.id,date:r.data.date,time:r.data.time,duration:r.data.duration,status:r.data.status,context:r.data.context,therapist:rows.find(t=>t.kind==='team'&&t.id===r.data.therapist)?.data.name||'Equipa clínica',room:rows.find(t=>t.kind==='room'&&t.id===r.data.room)?.data.name||''})).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time)),
+  appointments:rows.filter(r=>r.kind==='appointment'&&r.data.patientId===patientId).map(r=>({id:r.id,date:r.data.date,time:r.data.time,duration:r.data.duration,status:r.data.status,context:r.data.context,videoUrl:r.data.context==='Online'&&!['Cancelada','Falta','Remarcada','Concluída'].includes(r.data.status)?videoUrl(r.data.videoUrl):'',therapist:rows.find(t=>t.kind==='team'&&t.id===r.data.therapist)?.data.name||'Equipa clínica',room:rows.find(t=>t.kind==='room'&&t.id===r.data.room)?.data.name||''})).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time)),
   messages:rows.filter(r=>r.kind==='familyMessage'&&r.data.patientId===patientId&&r.data.recipient===email).map(r=>({id:r.id,body:r.data.body,date:r.data.date,direction:r.data.direction})).sort((a,b)=>a.date.localeCompare(b.date)),
   requests:rows.filter(r=>r.kind==='familyRequest'&&r.data.patientId===patientId&&r.data.recipient===email).map(r=>({id:r.id,appointmentId:r.data.appointmentId,type:r.data.type,body:r.data.body,date:r.data.date,status:r.data.status,response:r.data.response||''})),
  };

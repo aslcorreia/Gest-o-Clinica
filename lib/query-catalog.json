@@ -1,5 +1,12 @@
 [
   {
+    "id": "9185f17e1c671f1452cff044",
+    "sqlite": "DELETE FROM integration_connections WHERE clinic=? AND user_id=? AND provider=?",
+    "postgres": "DELETE FROM integration_connections WHERE clinic=%1$L AND user_id=%2$L AND provider=%3$L",
+    "arity": 3,
+    "readOnly": false
+  },
+  {
     "id": "8e8e3acbf1291b6dad0bc02e",
     "sqlite": "INSERT INTO audit(id,clinic,actor,action,record_id,created) SELECT ?,?,?,?,?,? WHERE 1=1 AND EXISTS(SELECT 1 FROM memberships WHERE id=? AND clinic=? AND therapist=? AND enabled=?) AND EXISTS(SELECT 1 FROM records WHERE id=? AND version=?)",
     "postgres": "INSERT INTO audit(id,clinic,actor,action,record_id,created) SELECT %1$L,%2$L,%3$L,%4$L,%5$L,%6$L WHERE 1=1 AND EXISTS(SELECT 1 FROM memberships WHERE id=%7$L AND clinic=%8$L AND therapist=%9$L AND enabled=%10$L) AND EXISTS(SELECT 1 FROM records WHERE id=%11$L AND version=%12$L)",
@@ -158,6 +165,13 @@
     "sqlite": "INSERT OR IGNORE INTO clinics(id,owner,name,created) VALUES(?,?,?,?)",
     "postgres": "INSERT INTO clinics(id,owner,name,created) VALUES(%1$L,%2$L,%3$L,%4$L) ON CONFLICT DO NOTHING",
     "arity": 4,
+    "readOnly": false
+  },
+  {
+    "id": "f4cd3b748430f4ba33ec5a17",
+    "sqlite": "INSERT OR IGNORE INTO integration_connections(clinic,user_id,provider,payload,version,updated) VALUES(?,?,?,?,1,?)",
+    "postgres": "INSERT INTO integration_connections(clinic,user_id,provider,payload,version,updated) VALUES(%1$L,%2$L,%3$L,%4$L,1,%5$L) ON CONFLICT DO NOTHING",
+    "arity": 5,
     "readOnly": false
   },
   {
@@ -609,6 +623,13 @@
     "readOnly": true
   },
   {
+    "id": "a0817778ead60376e96fb149",
+    "sqlite": "SELECT * FROM records WHERE kind='delivery' AND json_extract(data,'$.providerId')=?",
+    "postgres": "SELECT * FROM records WHERE kind='delivery' AND (data::jsonb->>'providerId')=%1$L",
+    "arity": 1,
+    "readOnly": true
+  },
+  {
     "id": "0696bff2dfa5f9876cb8d46b",
     "sqlite": "SELECT clinic FROM family_access WHERE email=? LIMIT 1",
     "postgres": "SELECT clinic FROM family_access WHERE email=%1$L LIMIT 1",
@@ -627,6 +648,13 @@
     "sqlite": "SELECT data FROM records WHERE clinic=? AND id=? AND kind='team'",
     "postgres": "SELECT data FROM records WHERE clinic=%1$L AND id=%2$L AND kind='team'",
     "arity": 2,
+    "readOnly": true
+  },
+  {
+    "id": "071133fab660e1e9830f0c1b",
+    "sqlite": "SELECT id FROM audit WHERE id=?",
+    "postgres": "SELECT id FROM audit WHERE id=%1$L",
+    "arity": 1,
     "readOnly": true
   },
   {
@@ -676,6 +704,13 @@
     "sqlite": "SELECT m.therapist,m.email FROM memberships m WHERE m.clinic=? AND m.enabled=1 AND EXISTS(SELECT 1 FROM audit a WHERE a.id='first-access:'||m.id AND a.clinic=m.clinic AND a.action='first_professional_access')",
     "postgres": "SELECT m.therapist,m.email FROM memberships m WHERE m.clinic=%1$L AND m.enabled=1 AND EXISTS(SELECT 1 FROM audit a WHERE a.id='first-access:'||m.id AND a.clinic=m.clinic AND a.action='first_professional_access')",
     "arity": 1,
+    "readOnly": true
+  },
+  {
+    "id": "6848ef6ed054b4bef64d0a70",
+    "sqlite": "SELECT payload,version FROM integration_connections WHERE clinic=? AND user_id=? AND provider=?",
+    "postgres": "SELECT payload,version FROM integration_connections WHERE clinic=%1$L AND user_id=%2$L AND provider=%3$L",
+    "arity": 3,
     "readOnly": true
   },
   {
@@ -739,6 +774,13 @@
     "sqlite": "UPDATE family_access SET enabled=0 WHERE clinic=? AND patient_id=? AND email NOT IN (?,?,?,?,?,?,?,?) AND EXISTS(SELECT 1 FROM records WHERE id=? AND json_extract(data,'$.mutationId')=?)",
     "postgres": "UPDATE family_access SET enabled=0 WHERE clinic=%1$L AND patient_id=%2$L AND email NOT IN (%3$L,%4$L,%5$L,%6$L,%7$L,%8$L,%9$L,%10$L) AND EXISTS(SELECT 1 FROM records WHERE id=%11$L AND (data::jsonb->>'mutationId')=%12$L)",
     "arity": 12,
+    "readOnly": false
+  },
+  {
+    "id": "bb649600b640653ce197f609",
+    "sqlite": "UPDATE integration_connections SET payload=?,version=version+1,updated=? WHERE clinic=? AND user_id=? AND provider=? AND version=?",
+    "postgres": "UPDATE integration_connections SET payload=%1$L,version=version+1,updated=%2$L WHERE clinic=%3$L AND user_id=%4$L AND provider=%5$L AND version=%6$L",
+    "arity": 6,
     "readOnly": false
   },
   {
@@ -1152,6 +1194,13 @@
     "sqlite": "UPDATE records SET data=?,version=version+1,updated=? WHERE id=? AND clinic=? AND version=? AND NOT EXISTS (SELECT 1 FROM records WHERE clinic=? AND kind='trainingEnrollment' AND id<>? AND json_extract(data,'$.courseId')=? AND json_extract(data,'$.therapist')=?)",
     "postgres": "UPDATE records SET data=%1$L,version=version+1,updated=%2$L WHERE id=%3$L AND clinic=%4$L AND version=%5$L AND NOT EXISTS (SELECT 1 FROM records WHERE clinic=%6$L AND kind='trainingEnrollment' AND id<>%7$L AND (data::jsonb->>'courseId')=%8$L AND (data::jsonb->>'therapist')=%9$L)",
     "arity": 9,
+    "readOnly": false
+  },
+  {
+    "id": "e2c09940836be0875c2473f8",
+    "sqlite": "UPDATE records SET data=?,version=version+1,updated=? WHERE id=? AND clinic=? AND version=? AND NOT EXISTS(SELECT 1 FROM audit WHERE id=?)",
+    "postgres": "UPDATE records SET data=%1$L,version=version+1,updated=%2$L WHERE id=%3$L AND clinic=%4$L AND version=%5$L AND NOT EXISTS(SELECT 1 FROM audit WHERE id=%6$L)",
+    "arity": 6,
     "readOnly": false
   },
   {

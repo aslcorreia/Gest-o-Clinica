@@ -1,3 +1,4 @@
+import {videoUrl} from './calendar';
 import {Rec} from './model';
 import {Access,visible,messageVisible} from './access';
 // Server-side workflow validation, deliberately separate from UI controls.
@@ -5,6 +6,7 @@ export function validateWorkflow(r:Rec,prev:Rec|undefined,rows:Rec[],a:Access){c
 const needsPatient=['plan','report','prescription','session','assessment','document','notebook','exerciseResult','referral','autonomousSession'];
 
 if(r.kind==='session'&&(prev?.data.careSchema||r.data.careSchema))fail('Utilize o acompanhamento para guardar este sumário.');
+if(r.kind==='appointment'){for(const key of ['calendarStatus','calendarUpdatedAt','videoStatus'])d[key]=prev?.data[key]||'';if(d.videoUrl&&!videoUrl(d.videoUrl))fail('Use uma ligação HTTPS válida de Meet, Zoom, Teams ou Whereby.');d.videoUrl=d.context==='Online'?videoUrl(d.videoUrl):'';if(d.videoUrl!==prev?.data.videoUrl)d.videoStatus=d.videoUrl?'Ligação guardada':'';if(prev&&['date','time','duration','therapist','status','context'].some(k=>d[k]!==prev.data[k]))d.calendarStatus='Por atualizar';}
 if(r.kind==='appointment'&&prev){const linked=rows.find(x=>x.kind==='session'&&x.data.appointmentId===r.id);if(linked&&(d.patientId!==prev.data.patientId||linked.data.status==='Concluída'&&['date','time','therapist','status'].some(k=>d[k]!==prev.data[k])))fail('Esta marcação tem um sumário associado. Preserve a identificação e o histórico da sessão.');}
 if(r.kind==='plan'){
  if(d.basePlanId){const base=rows.find(x=>x.kind==='plan'&&x.id===d.basePlanId);if(!prev?.data.basePlanId||!base||base.data.patientId!==d.patientId||!visible(base,a,rows))fail('Crie a proposta a partir do plano original do paciente.');}
