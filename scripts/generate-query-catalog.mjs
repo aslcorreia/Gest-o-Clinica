@@ -6,7 +6,7 @@ import crypto from 'node:crypto';
 import ts from 'typescript';
 const root=process.cwd(),queries=new Set(),normal=s=>s.trim().replace(/\s+/g,' ');
 function files(p){return fs.readdirSync(p,{withFileTypes:true}).flatMap(f=>f.isDirectory()?files(path.join(p,f.name)):f.name.endsWith('.ts')?[path.join(p,f.name)]:[]);}
-const paths=[...files(path.join(root,'app/api')),...['server','care-server','auth'].map(n=>path.join(root,'lib/'+n+'.ts'))];
+const paths=[...files(path.join(root,'app/api')),...['server','care-server','care-scheduler','auth'].map(n=>path.join(root,'lib/'+n+'.ts'))];
 for(const file of paths){
  const source=ts.createSourceFile(file,fs.readFileSync(file,'utf8'),ts.ScriptTarget.Latest,true);
  const expressions=[];function walk(n){if(ts.isCallExpression(n)&&ts.isPropertyAccessExpression(n.expression)&&n.expression.name.text==='prepare')expressions.push(n.arguments[0]);ts.forEachChild(n,walk);}walk(source);
@@ -20,7 +20,7 @@ for(const file of paths){
    if(enabled)guard+=' AND NOT EXISTS(SELECT 1 FROM family_access WHERE email=?) AND NOT EXISTS(SELECT 1 FROM memberships WHERE clinic=? AND therapist=? AND enabled=1 AND email<>?)';
    guard+=profile?' AND NOT EXISTS(SELECT 1 FROM records WHERE id=?)':' AND EXISTS(SELECT 1 FROM records WHERE id=? AND version=?)';contexts.push({guard});
   }
- }else if(file.endsWith('/care-server.ts'))contexts=Array.from({length:52},(_,i)=>[false,true].map(guard=>({guard,checks:Array(i).fill(' AND EXISTS(SELECT 1 FROM records WHERE id=? AND clinic=? AND version=?)').join('')}))).flat();
+ }else if(file.endsWith('/care-server.ts'))contexts=Array.from({length:53},(_,i)=>[false,true].map(guard=>({guard,checks:Array(i).fill(' AND EXISTS(SELECT 1 FROM records WHERE id=? AND clinic=? AND version=?)').join('')}))).flat();
  else if(file.endsWith('/parents/route.ts'))contexts=[{dependency:false},{dependency:true}];
  for(const expression of expressions)for(const context of contexts){try{queries.add(normal(vm.runInNewContext(expression.getText(source),context,{timeout:50})));}catch(e){throw Error(path.relative(root,file)+': '+expression.getText(source)+'\n'+e.message);}}
 }

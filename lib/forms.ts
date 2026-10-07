@@ -66,3 +66,7 @@ fields.patient=fields.patient.filter(f=>!['district','world','currentWorld','pro
 fields.patient.push({key:'guardianEmail',label:'Email do responsável autorizado',type:'email'},{key:'shareAuthorized',label:'Partilha clínica com o responsável autorizada',options:['Não','Sim']});
 fields.team.push({key:'startTime',label:'Hora prevista de entrada',type:'time'},{key:'workDays',label:'Dias de trabalho (0=domingo, 1=segunda … 6=sábado; separados por vírgula)',type:'text'},{key:'graceMinutes',label:'Tolerância de entrada (minutos)',type:'number'});
 fields.communication[2].options?.push('Informação da família');
+
+fields.invoice.push({key:'paymentDate',label:'Data de pagamento / recebimento',type:'date'});
+fields.team.push({key:'endTime',label:'Hora prevista de saída',type:'time'});
+fields.team.push({key:'preparationEmail',label:'Receber aviso da preparação por email (requer acesso confirmado e serviço ativo)',options:['Não','Sim']});

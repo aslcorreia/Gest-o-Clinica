@@ -10,7 +10,8 @@ if(r.kind==='plan'){
  if(d.basePlanId){const base=rows.find(x=>x.kind==='plan'&&x.id===d.basePlanId);if(!prev?.data.basePlanId||!base||base.data.patientId!==d.patientId||!visible(base,a,rows))fail('Crie a proposta a partir do plano original do paciente.');}
 
  if(prev&&['Aprovado','Ativo'].includes(prev.data.status))fail('Proponha uma revisão para preservar o histórico do plano aprovado.');
- if(prev?.data.status==='Substituído')fail('Plano histórico: consulte a versão atual.');
+ if(prev&&['Substituído','Concluído','Arquivado'].includes(prev.data.status))fail('Plano histórico: o conteúdo fica preservado.');
+ if(['Concluído','Arquivado'].includes(d.status))fail('Encerre o plano aprovado no circuito de conclusão e arquivo.');
  if(d.basePlanId&&['Ativo','Aprovado','Concluído'].includes(d.status))fail('Aprove a proposta no circuito de revisão.');
  if(prev?.data.basePlanId&&(d.basePlanId!==prev.data.basePlanId||d.basePlanVersion!==prev.data.basePlanVersion))fail('A referência à versão original não pode mudar.');
  if(d.basePlanId&&d.status==='Por aprovar'&&!String(d.revisionReason||'').trim())fail('Explique o motivo da revisão.');
@@ -31,7 +32,8 @@ if(['equipmentReservation','trainingEnrollment'].includes(r.kind)){
  if(!rows.some(x=>x.kind==='team'&&x.id===d.therapist)||!/^\d{4}-\d{2}-\d{2}$/.test(d.date))fail('Responsável ou data inválidos.');
  if(a.role!=='director'&&(d.therapist!==a.therapist||prev&&prev.data.therapist!==a.therapist))fail('Só pode alterar os seus próprios registos.');
  if(r.kind==='equipmentReservation'){
-  if(!rows.some(x=>x.kind==='equipment'&&x.id===d.equipmentId&&x.data.status!=='Manutenção'))fail('Equipamento indisponível.');
+  const cancellingExisting=d.status==='Cancelada'&&prev&&d.equipmentId===prev.data.equipmentId&&d.therapist===prev.data.therapist;
+  if(!rows.some(x=>x.kind==='equipment'&&x.id===d.equipmentId&&(x.data.status!=='Manutenção'||cancellingExisting)))fail('Equipamento indisponível.');
   if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(d.time)||!Number.isInteger(Number(d.duration))||Number(d.duration)<1||Number(d.duration)>1440||Number(d.time.slice(0,2))*60+Number(d.time.slice(3))+Number(d.duration)>1440)fail('Horário da reserva inválido.');
   if(!['Reservada','Concluída','Cancelada'].includes(d.status))fail('Estado da reserva inválido.');
  }else{

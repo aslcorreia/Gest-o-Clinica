@@ -13,13 +13,22 @@
 
 ## Verificado
 
-TypeScript e build de produção passaram. Suites de regras e integração passaram para clínica, terapeutas, responsáveis, irmãos, consentimentos, sessões, planos, ponto e autenticação. Todas as instruções do catálogo foram analisadas pelo PostgreSQL real. As verificações de transações passaram no projeto Supabase e reverteram os dados fictícios. O verificador de segurança devolveu zero avisos após aplicação das políticas de servidor.
+TypeScript e build de produção passaram. Suites de regras e integração passaram para clínica, terapeutas, responsáveis, irmãos, consentimentos, sessões, planos, ponto e autenticação. Todas as instruções do catálogo foram analisadas pelo PostgreSQL real. As verificações de transações passaram no projeto Supabase e reverteram os dados fictícios. A última auditoria não encontrou avisos de exposição das tabelas; mantém-se o aviso de proteção de palavras-passe comprometidas desativada.
 
-## Por executar
+## Publicação e utilização
 
-1. Ligar a branch `main` ao Worker `gest-o-clinica` na Cloudflare.
-2. Instalar `SUPABASE_SECRET_KEY` como segredo do Worker, obtido do projeto Linguar.
-3. Definir os URLs reais de entrada no Supabase Auth.
-4. Testar login real da direção, SMTP para equipa/famílias, upload e publicação seletiva de um sumário.
+- Publicado em https://gest-o-clinica.as-lcorreia.workers.dev, com o nome Bem Crescer.
+- Branch `main` ligada à Cloudflare; entrada real da direção confirmada.
+- Dados existentes preservados no Supabase; importações clínicas não são incluídas no repositório.
+- Correções operacionais devem passar os testes de regressão e a compilação. O catálogo SQL atualizado deve ser instalado antes de publicar código que utilize novas consultas.
 
-Não existe URL publicada da versão independente. A versão anterior do Site continua separada e não recebeu esta migração. Não foram transferidos pacientes entre projetos.
+## Por validar / completar
+
+1. Completar emails profissionais e ativar os acessos individuais.
+2. Completar responsáveis e autorizações reais por criança; ativar o painel dos pais.
+3. Confirmar SMTP e remetente de email; testar partilha com destinatário autorizado.
+4. Rever os objetivos documentados, criar/aprovar os planos terapêuticos e preencher a agenda real.
+5. Verificar a primeira execução do agendamento diário e a reposição de cópias de segurança.
+6. Integrar teleconsulta por vídeo, séries recorrentes e faturação/cobranças quando forem definidos os serviços necessários.
+
+Não alterar cookies, identificadores internos ou permissões para mudar a marca. A versão anterior do Site continua separada.

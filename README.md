@@ -4,7 +4,7 @@ Aplicação independente para direção clínica, terapeutas e famílias. Crian�
 
 ## Estado
 
-O projeto Supabase `Linguar` (`mwbtdncxfsixxlivwlzz`, Frankfurt) tem as tabelas, permissões, operações transacionais e armazenamento privado instalados e verificados. O código usa Supabase Auth, PostgreSQL e Storage. A publicação na Cloudflare e o teste com contas reais ainda estão pendentes.
+O projeto Supabase `Linguar` (`mwbtdncxfsixxlivwlzz`, Frankfurt) tem as tabelas, permissões, operações transacionais e armazenamento privado instalados e verificados. O código usa Supabase Auth, PostgreSQL e Storage. A aplicação está publicada em https://gest-o-clinica.as-lcorreia.workers.dev e a direção já iniciou sessão. Os acessos individuais da equipa e das famílias dependem de emails associados, responsáveis e autorizações registadas.
 
 ## Publicar na Cloudflare
 
@@ -55,6 +55,6 @@ Para desenvolvimento com a base real, definir `SUPABASE_SECRET_KEY` num ficheiro
 
 ## Limites atuais
 
-Falta validar publicação e login com contas reais, SMTP, email externo dos sumários, execução da preparação com a aplicação fechada e reposição de cópias de segurança. A preparação atualiza-se enquanto a aplicação está aberta; `/api/care/run` existe para agendamento externo protegido. Teleconsulta com vídeo e emissão fiscal não estão integradas. Não foram importados pacientes da versão alojada no ChatGPT.
+Falta validar a primeira entrada das terapeutas e famílias, SMTP, email externo dos sumários e reposição de cópias de segurança. A preparação atualiza-se enquanto a aplicação está aberta. O Worker inclui preparação diária às 18:05 de Lisboa, com ajuste de verão/inverno, deduplicação e estado de execução em Avisos e partilhas. A primeira execução automática em produção ainda deve ser confirmada. O email à equipa exige `CARE_TEAM_EMAIL_ENABLED=true`, serviço configurado, preferência explícita e primeiro acesso profissional confirmado; está desativado por defeito. Teleconsulta com vídeo e emissão fiscal não estão integradas. Não foram importados pacientes da versão alojada no ChatGPT.
 
 Referências: [Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/), [Supabase login por email](https://supabase.com/docs/guides/auth/auth-email-passwordless), [SMTP](https://supabase.com/docs/guides/auth/auth-smtp).

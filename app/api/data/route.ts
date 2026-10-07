@@ -6,11 +6,15 @@ import { districts } from '@/lib/model';
 import {normalizePatient,guardians} from '@/lib/patients';
 import {eligiblePatient} from '@/lib/family';
 import {professionalProjection} from '@/lib/access';
+import {appointmentAvailability,requiresAvailabilityCheck,validScheduleDate} from '@/lib/scheduling';
+import {equipmentUseAllowed,normalizeEquipmentMutation} from '@/lib/equipment';
+import {normalizeInvoicePayment} from '@/lib/finance';
+import {visitTransitionData} from '@/lib/care';
 const kinds = ['patient', 'appointment', 'team', 'room', 'plan', 'prescription', 'session', 'report', 'alert', 'school', 'visit', 'invoice', 'leave', 'material', 'course', 'feedback', 'message', 'communication', 'attendance', 'settings', 'assessment', 'preference','equipment','notebook','exerciseResult','document','subscription','referral','channel','survey','courseProgress','wellbeing','autonomousSession','equipmentReservation','trainingEnrollment','communicationTemplate','campaign','communicationRule'];
 const payload = z.object({ id: z.string().min(1).max(120).regex(/^[\w-]+$/), kind: z.enum(kinds as [
         string,
         ...string[]
-    ]), version: z.number().int().nonnegative(), data: z.record(z.any()) });
+    ]), version: z.number().int().nonnegative(), data: z.record(z.any()), action:z.literal('equipmentUse').optional() });
 export async function GET(req: Request) { try {
     const a = await identity(req);
     await ensureClinic(a);
@@ -38,18 +42,27 @@ export async function POST(req: Request) {
         const prev = rows.find(x => x.id === r.id);
         if (prev && prev.kind !== r.kind)
             throw new AppError('Tipo de registo inválido.');
-        if (!mayWrite(r.kind, a) || prev && !visible(prev, a, rows))
+        if(r.kind==='equipment'&&prev&&r.version!==prev.version)throw new AppError('O equipamento foi atualizado. Atualize a página antes de levantar ou devolver.',409);
+        const equipmentUse=r.action==='equipmentUse'&&r.kind==='equipment'&&!!prev&&a.role==='therapist';
+        if(r.action&&(r.kind!=='equipment'||!prev))throw new AppError('Ação de equipamento inválida.',403);
+        if(r.action&&prev&&!equipmentUseAllowed(prev,a))throw new AppError('Equipamento indisponível ou atribuído a outra pessoa.',409);
+        if ((!mayWrite(r.kind, a)&&!equipmentUse) || prev && !visible(prev, a, rows))
             throw new AppError('Sem permissão para esta alteração.', 403);
+        if(r.kind==='equipment')try{normalizeEquipmentMutation(r,prev,rows,a)}catch(e:any){throw new AppError(e.message,403)}
+        delete r.action;
+        if(r.kind==='visit')r.data=visitTransitionData(r.data,prev?.data,new Date().toISOString());
         if(r.kind==='attendance'){if(prev)throw new AppError('Movimentos de ponto são imutáveis. Registe uma justificação para correções.');const n=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Lisbon',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date());r.data.date=n.slice(0,10);r.data.time=n.slice(11,16);r.data.recordedAt=new Date().toISOString();}
         try { validateWorkflow(r,prev,rows,a); } catch(e:any) { throw new AppError(e.message,403); }
         const d = r.data;
+        if(r.kind==='invoice')try{normalizeInvoicePayment(r,prev,new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Lisbon',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()))}catch(e:any){throw new AppError(e.message)}
         if(r.kind==='document'){ d.signedAt=new Date().toISOString();d.signedBy=a.user.userId;const bytes=new TextEncoder().encode(JSON.stringify({patientId:d.patientId,name:d.name,body:d.body,signer:d.signer,signature:d.signature,signedAt:d.signedAt,signedBy:d.signedBy}));d.digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))).map(x=>x.toString(16).padStart(2,'0')).join(''); }
         for (const v of Object.values(d))
             if (typeof v === 'string' && v.length > (r.kind==='document'?80000:20000))
                 throw new AppError('Texto demasiado longo.');
         if (['patient', 'team', 'room', 'plan', 'report', 'school', 'invoice', 'material', 'course', 'feedback', 'communication', 'assessment'].includes(r.kind) && !String(d.name || '').trim())
             throw new AppError('Preencha o nome ou título.');
-        if (r.kind === 'leave' && (!/^\d{4}-\d{2}-\d{2}$/.test(d.date) || !/^\d{4}-\d{2}-\d{2}$/.test(d.endDate) || d.endDate < d.date))
+        if(r.kind==='team'&&d.endTime&&(!/^([01]\d|2[0-3]):[0-5]\d$/.test(d.endTime)||d.startTime&&d.endTime<=d.startTime))throw new AppError('A hora de saída deve ser válida e posterior à hora de entrada.');
+        if (r.kind === 'leave' && (!validScheduleDate(d.date) || !validScheduleDate(d.endDate) || d.endDate < d.date))
             throw new AppError('Datas de ausência inválidas.');
         if (r.kind === 'patient') {
             try{normalizePatient(r,prev,rows.filter(x=>visible(x,a,rows)),a.user.userId)}catch(e:any){throw new AppError(e.message)}
@@ -86,8 +99,13 @@ export async function POST(req: Request) {
         if (r.kind === 'feedback' && (!Number.isFinite(Number(d.score)) || d.score < 0 || d.score > 10))
             throw new AppError('Pontuação entre 0 e 10.');
         let conflictSql = '', conflictArgs: any[] = [];
+        if(r.kind==='leave'&&d.status==='Aprovado'){
+            if(rows.some(x=>x.kind==='appointment'&&x.data.therapist===d.therapist&&x.data.date>=d.date&&x.data.date<=d.endDate&&!['Falta','Cancelada','Concluída'].includes(x.data.status)))throw new AppError('Remarque ou cancele as sessões previstas neste período antes de aprovar a ausência.',409);
+            conflictSql = ` AND NOT EXISTS (SELECT 1 FROM records WHERE clinic=? AND kind='appointment' AND json_extract(data,'$.therapist')=? AND json_extract(data,'$.date')>=? AND json_extract(data,'$.date')<=? AND COALESCE(json_extract(data,'$.status'),'') NOT IN ('Falta','Cancelada','Concluída')) AND NOT EXISTS (SELECT 1 FROM records WHERE clinic=? AND kind='leave' AND id<>? AND json_extract(data,'$.therapist')=? AND json_extract(data,'$.status')='Aprovado' AND json_extract(data,'$.date')<=? AND json_extract(data,'$.endDate')>=?)`;
+            conflictArgs=[a.tenant,d.therapist,d.date,d.endDate,a.tenant,a.tenant+':'+r.id,d.therapist,d.endDate,d.date];
+        }
         if (r.kind === 'appointment') {
-            if (!/^\d{4}-\d{2}-\d{2}$/.test(d.date) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(d.time))
+            if (!validScheduleDate(d.date) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(d.time))
                 throw new AppError('Data ou hora inválida.');
             if (![30, 45, 60, 90].includes(Number(d.duration)))
                 throw new AppError('Duração inválida.');
@@ -95,12 +113,16 @@ export async function POST(req: Request) {
                 throw new AppError('Escolha paciente e terapeuta.');
             if (d.context === 'Clínica' && !rows.some(x => x.kind === 'room' && x.id === d.room))
                 throw new AppError('Escolha uma sala.');
+            if(d.context&&d.context!=='Clínica')d.room='';
+            const checkAvailability=requiresAvailabilityCheck(d,prev?.data);
+            if(checkAvailability){const unavailable=appointmentAvailability(rows,d,r.id);if(unavailable)throw new AppError(unavailable,409);}
             const start = Number(d.time.slice(0, 2)) * 60 + Number(d.time.slice(3));
             if (start + Number(d.duration) > 1440)
                 throw new AppError('A sessão ultrapassa o final do dia.');
             if (!['Falta', 'Cancelada'].includes(d.status)) {
-                conflictSql = ` AND NOT EXISTS (SELECT 1 FROM records WHERE clinic=? AND kind='appointment' AND id<>? AND json_extract(data,'$.date')=? AND json_extract(data,'$.status') NOT IN ('Falta','Cancelada') AND (json_extract(data,'$.therapist')=? OR json_extract(data,'$.patientId')=? OR (?<>'' AND json_extract(data,'$.room')=?)) AND (CAST(substr(json_extract(data,'$.time'),1,2) AS INTEGER)*60+CAST(substr(json_extract(data,'$.time'),4,2) AS INTEGER)) < ? AND (CAST(substr(json_extract(data,'$.time'),1,2) AS INTEGER)*60+CAST(substr(json_extract(data,'$.time'),4,2) AS INTEGER)+CAST(json_extract(data,'$.duration') AS INTEGER)) > ?)`;
-                conflictArgs = [a.tenant, a.tenant + ':' + r.id, d.date, d.therapist, d.patientId, d.room || '', d.room || '', start + Number(d.duration), start];
+                conflictSql = ` AND NOT EXISTS (SELECT 1 FROM records WHERE clinic=? AND kind='appointment' AND id<>? AND json_extract(data,'$.date')=? AND COALESCE(json_extract(data,'$.status'),'') NOT IN ('Falta','Cancelada') AND (json_extract(data,'$.therapist')=? OR json_extract(data,'$.patientId')=? OR (?<>'' AND json_extract(data,'$.room')=? AND COALESCE(NULLIF(json_extract(data,'$.context'),''),'Clínica')='Clínica')) AND (CAST(substr(json_extract(data,'$.time'),1,2) AS INTEGER)*60+CAST(substr(json_extract(data,'$.time'),4,2) AS INTEGER)) < ? AND (CAST(substr(json_extract(data,'$.time'),1,2) AS INTEGER)*60+CAST(substr(json_extract(data,'$.time'),4,2) AS INTEGER)+CAST(json_extract(data,'$.duration') AS INTEGER)) > ?) AND (?=0 OR (EXISTS (SELECT 1 FROM records WHERE clinic=? AND kind='team' AND id=? AND version=?) AND (?='' OR EXISTS (SELECT 1 FROM records WHERE clinic=? AND kind='room' AND id=? AND version=?)) AND NOT EXISTS (SELECT 1 FROM records WHERE clinic=? AND kind='leave' AND json_extract(data,'$.therapist')=? AND json_extract(data,'$.status')='Aprovado' AND json_extract(data,'$.date')<=? AND json_extract(data,'$.endDate')>=?)))`;
+                const therapist=rows.find(x=>x.kind==='team'&&x.id===d.therapist)!,room=rows.find(x=>x.kind==='room'&&x.id===d.room);
+                conflictArgs = [a.tenant, a.tenant + ':' + r.id, d.date, d.therapist, d.patientId, d.room || '', d.room || '', start + Number(d.duration), start,checkAvailability?1:0,a.tenant,a.tenant+':'+therapist.id,therapist.version,d.room||'',a.tenant,a.tenant+':'+(room?.id||''),room?.version||0,a.tenant,d.therapist,d.date,d.date];
             }
         }
         if(r.kind==='equipmentReservation'&&d.status!=='Cancelada'){

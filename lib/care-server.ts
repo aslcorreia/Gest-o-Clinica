@@ -2,7 +2,7 @@ import {env} from 'cloudflare:workers';
 import {db,AppError,Identity,allRecords} from './server';
 import type {Rec} from './model';
 import type {Statement} from './supabase-database';
-import {preparation,lisbonNow,nextDay,attendanceIssues} from './care';
+import {preparation,lisbonNow,nextDay,attendanceNoticeChanges} from './care';
 export const mailReady=()=>Boolean((env as any).RESEND_API_KEY&&(env as any).MAIL_FROM);
 export function insertRecord(a:Identity,r:Rec,guard?:{id:string;op:string}){const now=new Date().toISOString();return db().prepare(`INSERT OR IGNORE INTO records(id,clinic,kind,data,author,version,updated) SELECT ?,?,?,?,?,1,? ${guard?"WHERE EXISTS(SELECT 1 FROM records WHERE id=? AND json_extract(data,'$.mutationId')=?)":''}`).bind(a.tenant+':'+r.id,a.tenant,r.kind,JSON.stringify(r.data),a.user.userId,now,...(guard?[a.tenant+':'+guard.id,guard.op]:[]))}
 export function notification(id:string,data:any):Rec{return {id,kind:'careNotice',version:0,data:{...data,createdAt:new Date().toISOString()}}}
@@ -14,9 +14,9 @@ export async function atomicSave(a:Identity,r:Rec,prev:Rec|undefined,extras:(gua
  const result=await db().batch([primary,...extras(guard),audit]);if(!result[0].meta.changes)throw new AppError('O registo mudou entretanto. Atualize antes de guardar; o texto foi preservado.',409);
  return {...r,version:(prev?.version||0)+1};
 }
-export async function runClinic(a:Identity){const rows=await allRecords(a),today=lisbonNow(),tomorrow=nextDay(today.date);const statements:Statement[]=[];
- for(const ap of rows.filter(r=>r.kind==='appointment'&&r.data.date===tomorrow&&!['Cancelada','Falta','Concluída'].includes(r.data.status))){const prep=preparation(rows,ap);const note=notification('brief-'+ap.id+'-'+tomorrow,{name:'Preparação da próxima sessão',patientId:ap.data.patientId,therapist:ap.data.therapist,appointmentId:ap.id,type:'brief',date:tomorrow,body:prep.body});const previous=rows.find(r=>r.id===note.id);if(!previous)statements.push(insertRecord(a,note));else if(previous.data.body!==prep.body||previous.data.therapist!==ap.data.therapist)statements.push(db().prepare('UPDATE records SET data=?,version=version+1,updated=? WHERE id=? AND clinic=? AND version=?').bind(JSON.stringify(note.data),new Date().toISOString(),a.tenant+':'+note.id,a.tenant,previous.version));}
- for(const issue of attendanceIssues(rows,today))statements.push(insertRecord(a,notification(issue.id,{name:issue.title,body:issue.detail,therapist:issue.therapist,directorOnly:true,type:'attendance'})));
+export async function runClinic(a:Identity,options:{preparationOnly?:boolean}={}){const rows=await allRecords(a),today=lisbonNow(),tomorrow=nextDay(today.date);const statements:Statement[]=[];
+ for(const ap of rows.filter(r=>r.kind==='appointment'&&r.data.date===tomorrow&&!['Cancelada','Falta','Concluída','Remarcada'].includes(r.data.status))){const prep=preparation(rows,ap);const note=notification('brief-'+ap.id+'-'+tomorrow,{name:'Preparação da próxima sessão',patientId:ap.data.patientId,therapist:ap.data.therapist,appointmentId:ap.id,type:'brief',date:tomorrow,body:prep.body});const previous=rows.find(r=>r.id===note.id);if(!previous)statements.push(insertRecord(a,note));else if(previous.data.body!==prep.body||previous.data.therapist!==ap.data.therapist)statements.push(db().prepare('UPDATE records SET data=?,version=version+1,updated=? WHERE id=? AND clinic=? AND version=?').bind(JSON.stringify({...previous.data,...note.data,createdAt:previous.data.createdAt||note.data.createdAt}),new Date().toISOString(),a.tenant+':'+note.id,a.tenant,previous.version));}
+ for(const note of options.preparationOnly?[]:attendanceNoticeChanges(rows,today)){const previous=rows.find(r=>r.id===note.id);if(!previous)statements.push(insertRecord(a,note));else statements.push(db().prepare('UPDATE records SET data=?,version=version+1,updated=? WHERE id=? AND clinic=? AND version=?').bind(JSON.stringify(note.data),new Date().toISOString(),a.tenant+':'+note.id,a.tenant,previous.version));}
  for(let i=0;i<statements.length;i+=50)await db().batch(statements.slice(i,i+50));
  return {prepared:statements.length};
 }
