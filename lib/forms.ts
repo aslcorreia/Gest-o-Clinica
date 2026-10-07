@@ -1,0 +1,68 @@
+export type Field = {
+    key: string;
+    label: string;
+    type?: string;
+    options?: string[];
+    required?: boolean;
+};
+const name = { key: 'name', label: 'Nome / título', required: true };
+const notes = { key: 'notes', label: 'Observações', type: 'textarea' };
+const status = (options: string[]) => ({ key: 'status', label: 'Estado', options });
+export const fields: Record<string, Field[]> = {
+    patient: [name, { key: 'age', label: 'Idade', type: 'number', required: true }, { key: 'diagnosis', label: 'Hipótese / diagnóstico' }, { key: 'therapist', label: 'Terapeuta responsável', type: 'team', required: true }, { key: 'district', label: 'Distrito', type: 'district' }, { key: 'guardian', label: 'Adulto responsável' }, { key: 'contact', label: 'Contacto da família' }, { key: 'school', label: 'Escola' }, { key: 'objectives', label: 'Objetivos', type: 'textarea' }, status(['Ativo', 'Arquivado'])],
+    appointment: [{ key: 'patientId', label: 'Paciente', type: 'patient', required: true }, { key: 'therapist', label: 'Terapeuta', type: 'team', required: true }, { key: 'date', label: 'Data', type: 'date', required: true }, { key: 'time', label: 'Hora', type: 'time', required: true }, { key: 'duration', label: 'Duração (minutos)', options: ['30', '45', '60', '90'] }, { key: 'context', label: 'Contexto', options: ['Clínica', 'Escola', 'Online', 'Domicílio'] }, { key: 'room', label: 'Sala', type: 'room' }, { key: 'type', label: 'Tipo', options: ['Sessão', 'Avaliação', 'Reavaliação'] }, status(['Esperado', 'Sala de espera', 'Em sessão', 'Concluída', 'Falta', 'Remarcada', 'Cancelada', 'Atrasado'])],
+    team: [name, { key: 'email', label: 'Email profissional', type: 'email' }, { key: 'specialty', label: 'Especialidade' }, { key: 'hours', label: 'Horas semanais', type: 'number' }, status(['Ativo', 'Ausente', 'Inativo'])],
+    room: [name, { key: 'capacity', label: 'Capacidade', type: 'number' }, {key:'equipment',label:'Equipamentos (separados por vírgulas)'}, status(['Disponível', 'Indisponível']), notes],
+    plan: [{ key: 'patientId', label: 'Paciente', type: 'patient', required: true }, name, { key: 'body', label: 'Objetivos e plano de intervenção', type: 'textarea', required: true }, status(['Rascunho', 'Por aprovar', 'Aprovado', 'Rever', 'Arquivado'])],
+    report: [{ key: 'patientId', label: 'Paciente', type: 'patient', required: true }, name, { key: 'type', label: 'Tipo', options: ['Sessão', 'Progresso', 'Avaliação', 'Alta'] }, { key: 'body', label: 'Conteúdo do relatório', type: 'textarea', required: true }, status(['Rascunho', 'Por aprovar', 'Aprovado', 'Rever'])],
+    prescription: [{ key: 'patientId', label: 'Paciente', type: 'patient', required: true }, { key: 'district', label: 'Distrito', type: 'district', required: true }, name, { key: 'skill', label: 'Subcompetência', required: true }, { key: 'exercises', label: 'IDs dos exercícios no banco editorial', required: true }, { key: 'frequency', label: 'Vezes por semana', type: 'number', required: true }, { key: 'repetitions', label: 'Repetições', type: 'number', required: true }, { key: 'duration', label: 'Minutos por sessão', type: 'number', required: true }, { key: 'targets', label: 'Sons-alvo' }, { key: 'words', label: 'Palavras-alvo' }, { key: 'themes', label: 'Temas' }, status(['Rascunho', 'Pronta para integração', 'Arquivada'])],
+    school: [name, { key: 'address', label: 'Morada' }, { key: 'teacher', label: 'Professor / direção' }, { key: 'contact', label: 'Contacto' }, notes],
+    visit: [name, { key: 'school', label: 'Escola' }, { key: 'therapist', label: 'Terapeuta', type: 'team' }, { key: 'date', label: 'Data', type: 'date' }, { key: 'time', label: 'Hora', type: 'time' }, { key: 'km', label: 'Quilómetros (registo manual)', type: 'number' }, status(['Previsto', 'A caminho', 'Na escola', 'Concluído', 'Aprovado', 'Pago']), notes],
+    invoice: [name, { key: 'patientId', label: 'Paciente (receita)', type: 'patient' }, { key: 'date', label: 'Data', type: 'date' }, { key: 'amount', label: 'Valor (€)', type: 'number' }, { key: 'type', label: 'Movimento', options: ['Receita', 'Custo'] }, status(['Por pagar', 'Pago']), notes],
+    leave: [name, { key: 'therapist', label: 'Terapeuta', type: 'team' }, { key: 'date', label: 'Início', type: 'date', required: true }, { key: 'endDate', label: 'Fim', type: 'date', required: true }, status(['Por aprovar', 'Aprovado', 'Rever']), notes],
+    material: [name, { key: 'category', label: 'Categoria', options: ['Materiais', 'Protocolos', 'Evidência'] }, { key: 'district', label: 'Distrito', type: 'district' }, { key: 'body', label: 'Conteúdo / instruções', type: 'textarea' }, { key: 'url', label: 'Ligação do recurso', type: 'url' }, { key: 'quantity', label: 'Quantidade em inventário', type: 'number' }, status(['Disponível', 'Repor'])],
+    course: [name, { key: 'body', label: 'Conteúdo / plano de formação', type: 'textarea' }, { key: 'url', label: 'Ligação da formação', type: 'url' }, { key: 'hours', label: 'Horas', type: 'number' }, { key: 'progress', label: 'Progresso (%)', type: 'number' }, status(['Por iniciar', 'Em curso', 'Concluído'])],
+    feedback: [name, { key: 'therapist', label: 'Terapeuta', type: 'team' }, { key: 'audience', label: 'Origem', options: ['Pais', 'Criança'] }, { key: 'score', label: 'Pontuação (0–10)', type: 'number' }, { key: 'date', label: 'Data', type: 'date' }, notes],
+    communication: [name, { key: 'patientId', label: 'Paciente', type: 'patient' }, { key: 'type', label: 'Canal', options: ['Nota interna', 'Chamada', 'Email preparado', 'Carta preparada'] }, { key: 'body', label: 'Registo / rascunho', type: 'textarea' }],
+    assessment: [{ key: 'patientId', label: 'Paciente', type: 'patient', required: true }, name, { key: 'stage', label: 'Fase', options: ['Hipótese diagnóstica', 'Seleção de provas', 'Calendarização', 'Resultados', 'Relatório'] }, { key: 'tests', label: 'Provas selecionadas' }, { key: 'minutes', label: 'Duração total estimada das provas (min)', type: 'number' }, { key: 'duration', label: 'Duração de cada sessão (min)', options: ['30', '45', '60'] }, notes],
+    settings: [name, { key: 'hours', label: 'Horário da clínica' }, { key: 'kmRate', label: 'Valor por km (€) — política interna', type: 'number' }],
+};
+export const kindNames: Record<string, string> = { patient: 'paciente', appointment: 'sessão', team: 'terapeuta', room: 'sala / recurso', plan: 'plano terapêutico', report: 'relatório', prescription: 'prescrição', school: 'escola', visit: 'visita', invoice: 'movimento', leave: 'pedido de ausência', material: 'material', course: 'formação', feedback: 'feedback', communication: 'comunicação', assessment: 'avaliação', settings: 'configuração' };
+
+fields.patient.push({key:'authorizedAdults',label:'Adultos autorizados',type:'textarea'},{key:'emergency',label:'Contacto de emergência'},{key:'teacher',label:'Professor e contacto'},{key:'schoolDirector',label:'Direção da escola e contacto'},{key:'needsAssessment',label:'Necessita avaliação',options:['Não','Sim']});
+fields.team.push({key:'monthlyHours',label:'Horas de referência mensal (opcional)',type:'number'},{key:'monthlyGoal',label:'Objetivo mensal de sessões',type:'number'});
+fields.material.push({key:'minimum',label:'Stock mínimo',type:'number'});
+fields.school.push({key:'email',label:'Email',type:'email'},{key:'phone',label:'Telefone'});
+fields.report.push({key:'recipient',label:'Destinatário',options:['Família','Escola','Médico','Interno']});
+fields.visit[1]={key:'school',label:'Escola',type:'school',required:true};
+fields.equipment=[name,status(['Disponível','Em uso','Manutenção']),notes];
+fields.notebook=[name,{key:'patientId',label:'Aluno',type:'patient',required:true},{key:'school',label:'Escola',type:'school',required:true},{key:'date',label:'Data',type:'date',required:true},{key:'body',label:'Observação / mensagem recebida',type:'textarea',required:true},{key:'source',label:'Origem',options:['Terapeuta','Professor','Família']}];
+fields.exerciseResult=[name,{key:'patientId',label:'Paciente',type:'patient',required:true},{key:'date',label:'Data',type:'date',required:true},{key:'correct',label:'Acertos',type:'number'},{key:'error',label:'Erros',type:'number'},{key:'repetitions',label:'Repetições',type:'number'},{key:'seconds',label:'Tempo (segundos)',type:'number'},notes];
+fields.subscription=[name,{key:'seats',label:'Lugares incluídos',type:'number'},{key:'amount',label:'Valor contratual (€)',type:'number'},{key:'nextDate',label:'Próxima cobrança',type:'date'},notes];
+fields.referral=[name,{key:'patientId',label:'Paciente',type:'patient',required:true},{key:'destination',label:'Profissional / serviço de destino',required:true},{key:'body',label:'Motivo',type:'textarea'},status(['Rascunho','Preparado','Entregue pela clínica','Concluído'])];
+fields.channel=[name,{key:'private',label:'Canal privado',options:['Não','Sim']},{key:'membersText',label:'IDs dos terapeutas participantes, separados por vírgulas'}];
+fields.survey=[name,{key:'audience',label:'Destinatário',options:['Pais','Criança']},{key:'frequency',label:'Cadência',options:['Após sessão','Semanal','Mensal']},{key:'question',label:'Pergunta',type:'textarea'},{key:'ageRange',label:'Faixa etária'},status(['Rascunho','Ativo','Arquivado'])];
+Object.assign(kindNames,{equipment:'equipamento',notebook:'registo escolar',exerciseResult:'resultado de exercício',subscription:'contrato de subscrição',referral:'encaminhamento',channel:'canal',survey:'microinquérito'});
+
+fields.alert=[name,{key:"patientId",label:"Paciente",type:"patient"},{key:"body",label:"Descrição / lembrete",type:"textarea"},{key:"type",label:"Tipo",options:["Clínico","Padrão de faltas","Financeiro","Lembrete"]},status(["Por rever","Resolvido"])];
+kindNames.alert="alerta / lembrete";
+
+fields.plan.push({key:'context',label:'Contexto',options:['Clínica','Casa','Escola']},{key:'reviewDate',label:'Data de revisão',type:'date'});
+fields.course.push({key:'date',label:'Data agendada',type:'date'},{key:'time',label:'Hora',type:'time'},{key:'location',label:'Local / modalidade'});
+fields.team.push({key:'trainingGoal',label:'Meta interna de formação anual (horas)',type:'number'});
+fields.invoice.push({key:'category',label:'Categoria de custo',options:['Pessoal','Renda','Materiais','Serviços','Outros']},{key:'therapist',label:'Profissional (custo de pessoal)',type:'team'},{key:'dueDate',label:'Vencimento',type:'date'});
+fields.autonomousSession=[{key:'patientId',label:'Paciente',type:'patient',required:true},{key:'prescriptionId',label:'Prescrição associada (opcional)',type:'prescription'},{key:'date',label:'Data',type:'date',required:true},{key:'duration',label:'Duração (minutos)',type:'number',required:true},{key:'correct',label:'Acertos',type:'number',required:true},{key:'error',label:'Erros',type:'number',required:true},status(['Concluída','Interrompida','Em curso']),notes];
+fields.equipmentReservation=[{key:'equipmentId',label:'Equipamento',type:'equipment',required:true},{key:'therapist',label:'Responsável',type:'team',required:true},{key:'date',label:'Data',type:'date',required:true},{key:'time',label:'Hora',type:'time',required:true},{key:'duration',label:'Duração (minutos)',type:'number',required:true},status(['Reservada','Concluída','Cancelada']),notes];
+fields.trainingEnrollment=[{key:'courseId',label:'Formação',type:'course',required:true},{key:'therapist',label:'Profissional',type:'team',required:true},{key:'date',label:'Data (ano do mapa)',type:'date',required:true},status(['Inscrito','Concluída','Cancelada']),{key:'notes',label:'Notas partilhadas com a clínica',type:'textarea'}];
+fields.communicationTemplate=[name,{key:'type',label:'Canal',options:['Email preparado','Carta preparada','Nota interna']},{key:'body',label:'Modelo: use {{paciente}} e {{responsavel}}',type:'textarea',required:true}];
+fields.campaign=[name,{key:'audience',label:'Público-alvo',required:true},{key:'date',label:'Data prevista',type:'date'},{key:'body',label:'Conteúdo / plano da campanha',type:'textarea'},status(['Rascunho','Preparada','Arquivada'])];
+fields.communicationRule=[name,{key:'event',label:'Evento',options:['Antes da sessão','Após sessão','Pagamento vencido','Sem atividade']},{key:'days',label:'Dias de antecedência / atraso',type:'number',required:true},{key:'templateId',label:'Modelo',type:'communicationTemplate',required:true},status(['Rascunho','Preparada','Arquivada'])];
+Object.assign(kindNames,{autonomousSession:'sessão autónoma',equipmentReservation:'reserva de equipamento',trainingEnrollment:'inscrição em formação',communicationTemplate:'modelo de comunicação',campaign:'campanha',communicationRule:'regra de comunicação'});
+
+fields.patient.push({key:'startDate',label:'Início do acompanhamento',type:'date'},{key:'endDate',label:'Fim do acompanhamento (se aplicável)',type:'date'});
+fields.feedback.push({key:'patientId',label:'Paciente (opcional)',type:'patient'});
+
+fields.patient=fields.patient.filter(f=>!['district','world','currentWorld','progress'].includes(f.key));
+fields.patient.push({key:'guardianEmail',label:'Email do responsável autorizado',type:'email'},{key:'shareAuthorized',label:'Partilha clínica com o responsável autorizada',options:['Não','Sim']});
+fields.team.push({key:'startTime',label:'Hora prevista de entrada',type:'time'},{key:'workDays',label:'Dias de trabalho (0=domingo, 1=segunda … 6=sábado; separados por vírgula)',type:'text'},{key:'graceMinutes',label:'Tolerância de entrada (minutos)',type:'number'});
+fields.communication[2].options?.push('Informação da família');

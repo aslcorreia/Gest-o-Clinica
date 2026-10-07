@@ -1,0 +1,11 @@
+{
+ "name":"linguar-clinica",
+ "main":"vinext/server/fetch-handler",
+ "compatibility_date":"2026-05-22",
+ "compatibility_flags":["nodejs_compat"],
+ "vars":{
+  "SUPABASE_URL":"https://mwbtdncxfsixxlivwlzz.supabase.co",
+  "SUPABASE_PUBLISHABLE_KEY":"sb_publishable_KI716sTaoLQiw7N0ztXI-g_kIZWgaXd",
+  "CLINIC_OWNER_EMAIL":"as.lcorreia@gmail.com"
+ }
+}

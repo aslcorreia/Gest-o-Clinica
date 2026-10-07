@@ -1,0 +1,1 @@
+declare namespace Cloudflare { interface Env { SUPABASE_URL: string; SUPABASE_PUBLISHABLE_KEY: string; SUPABASE_SECRET_KEY: string; CLINIC_OWNER_EMAIL: string; RESEND_API_KEY?: string; MAIL_FROM?: string; CARE_CRON_SECRET?: string; CARE_SCHEDULER_CONFIGURED?: string; } }
