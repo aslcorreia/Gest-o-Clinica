@@ -13,14 +13,15 @@ const env=url('export const env=globalThis.schedulerTest.env');
 const care=url(compile('lib/care.ts'));
 const server=url("export const db=()=>globalThis.schedulerTest.database;export async function allRecords(a){const q=await db().prepare('SELECT * FROM records WHERE clinic=?').bind(a.tenant).all();return q.results.map(r=>({id:r.id.slice(a.tenant.length+1),kind:r.kind,version:r.version,data:JSON.parse(r.data)}))}");
 const careServer=url(`import {db} from '${server}';export const mailReady=()=>Boolean(globalThis.schedulerTest.env.RESEND_API_KEY&&globalThis.schedulerTest.env.MAIL_FROM);export const notification=(id,data)=>({id,kind:'careNotice',data:{...data,createdAt:new Date().toISOString()}});export function insertRecord(a,r){return db().prepare('INSERT OR IGNORE INTO records VALUES(?,?,?,?,?,1,?)').bind(a.tenant+':'+r.id,a.tenant,r.kind,JSON.stringify(r.data),a.user.userId,new Date().toISOString())}export async function runClinic(a,options){if(!options.preparationOnly)throw Error('Attendance must not run in evening cron');globalThis.schedulerTest.runs++;if(globalThis.schedulerTest.throwRun)throw Error('Simulated failure');return {prepared:2}}`);
-const scheduler=url(compile('lib/care-scheduler.ts').replace("'cloudflare:workers'",JSON.stringify(env)).replace("'./server'",JSON.stringify(server)).replace("'./care-server'",JSON.stringify(careServer)).replace("'./care'",JSON.stringify(care)));
+const mailServer=url(`export const mailReady=async()=>Boolean(globalThis.schedulerTest.env.RESEND_API_KEY&&globalThis.schedulerTest.env.MAIL_FROM);export async function prepareMail(a){if(!await mailReady(a))throw Error('Mail unavailable');return {provider:'resend',async send({to,subject,text,id}){try{const response=await fetch('https://api.resend.com/emails',{method:'POST',headers:{'Content-Type':'application/json','Idempotency-Key':a.tenant+'/'+id},body:JSON.stringify({from:globalThis.schedulerTest.env.MAIL_FROM,to:[to],subject,text})});const body=await response.json();return {status:response.ok&&body.id?'Aceite pelo serviço':'Falhou',providerId:body.id||'',provider:'resend'}}catch{return {status:'Resultado desconhecido',providerId:'',provider:'resend'}}}}}`);
+const scheduler=url(compile('lib/care-scheduler.ts').replace("'cloudflare:workers'",JSON.stringify(env)).replace("'./server'",JSON.stringify(server)).replace("'./care-server'",JSON.stringify(careServer)).replace("'./mail-server'",JSON.stringify(mailServer)).replace("'./care'",JSON.stringify(care)));
 const {preparationScheduleDue,preparationRecipients,runScheduledPreparations,preparationEmailEnabled}=await import(scheduler);
 assert.equal(preparationScheduleDue(new Date('2026-07-01T17:05:00Z')),true);
 assert.equal(preparationScheduleDue(new Date('2026-07-01T18:05:00Z')),false);
 assert.equal(preparationScheduleDue(new Date('2026-12-01T17:05:00Z')),false);
 assert.equal(preparationScheduleDue(new Date('2026-12-01T18:05:00Z')),true);
 assert.equal(preparationScheduleDue(new Date('2026-10-25T18:05:00Z')),true);
-assert.equal(preparationEmailEnabled(),false);
+assert.equal(await preparationEmailEnabled({tenant:'c'}),false);
 const team={id:'t',kind:'team',data:{name:'Teste',email:'therapist@example.invalid',status:'Ativo',preparationEmail:'Sim'}};
 const appointment={id:'a',kind:'appointment',data:{date:'2026-07-02',therapist:'t',status:'Esperado'}};
 const verified=[{therapist:'t',email:'therapist@example.invalid'}];
@@ -62,5 +63,15 @@ try{
  assert.equal(result.failed,0);assert.equal(result.clinics,1);assert.equal(sent,1);
  note=JSON.parse(sqlite.prepare("SELECT data FROM records WHERE id='c:preparation-scheduler-2026-07-04'").get().data);
  assert.equal(note.status,'Concluído');
+ // A provider timeout leaves an immutable daily claim. Neither an external
+ // retry nor another native run can duplicate a possibly accepted email.
+ put('a','appointment',{...appointment.data,date:'2026-07-06'});
+ globalThis.fetch=async()=>{sent++;throw new Error('Simulated timeout after provider request')};
+ await runScheduledPreparations(new Date('2026-07-05T17:05:00Z'));
+ assert.equal(sent,2);
+ note=JSON.parse(sqlite.prepare("SELECT data FROM records WHERE id='c:preparation-email-2026-07-06-t'").get().data);
+ assert.equal(note.status,'Resultado desconhecido');
+ await runScheduledPreparations(new Date('2026-07-05T17:06:00Z'),'external');
+ assert.equal(sent,2);
 }finally{globalThis.fetch=originalFetch;sqlite.close()}
 console.log('Care scheduler: Lisbon/DST, daily deduplication, disabled-by-default email, confirmed access, privacy and failure state passed.');

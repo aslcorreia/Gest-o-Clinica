@@ -707,6 +707,13 @@
     "readOnly": true
   },
   {
+    "id": "bdb46cb8629855817368ec06",
+    "sqlite": "SELECT owner FROM clinics WHERE id=?",
+    "postgres": "SELECT owner FROM clinics WHERE id=%1$L",
+    "arity": 1,
+    "readOnly": true
+  },
+  {
     "id": "6848ef6ed054b4bef64d0a70",
     "sqlite": "SELECT payload,version FROM integration_connections WHERE clinic=? AND user_id=? AND provider=?",
     "postgres": "SELECT payload,version FROM integration_connections WHERE clinic=%1$L AND user_id=%2$L AND provider=%3$L",
@@ -1239,10 +1246,10 @@
     "readOnly": false
   },
   {
-    "id": "d75a97be8db398a76b418cf0",
-    "sqlite": "UPDATE records SET data=json_set(data,'$.status',?,'$.providerId',?,'$.processedAt',?),version=version+1,updated=? WHERE id=? AND clinic=?",
-    "postgres": "UPDATE records SET data=linguar_private.json_set(data,'$.status',%1$L,'$.providerId',%2$L,'$.processedAt',%3$L),version=version+1,updated=%4$L WHERE id=%5$L AND clinic=%6$L",
-    "arity": 6,
+    "id": "6e0b507f8674e146b1ba6a90",
+    "sqlite": "UPDATE records SET data=json_set(data,'$.status',?,'$.providerId',?,'$.provider',?,'$.processedAt',?),version=version+1,updated=? WHERE id=? AND clinic=?",
+    "postgres": "UPDATE records SET data=linguar_private.json_set(data,'$.status',%1$L,'$.providerId',%2$L,'$.provider',%3$L,'$.processedAt',%4$L),version=version+1,updated=%5$L WHERE id=%6$L AND clinic=%7$L",
+    "arity": 7,
     "readOnly": false
   }
 ]

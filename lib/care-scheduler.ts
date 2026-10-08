@@ -1,12 +1,13 @@
 import {env} from 'cloudflare:workers';
 import {allRecords,db,type Identity} from './server';
-import {insertRecord,mailReady,notification,runClinic} from './care-server';
+import {insertRecord,notification,runClinic} from './care-server';
+import {mailReady,prepareMail} from './mail-server';
 import {lisbonNow,nextDay} from './care';
 import type {Rec} from './model';
 
 const APP_URL='https://gest-o-clinica.as-lcorreia.workers.dev/#preparation';
 export const preparationScheduleDue=(at=new Date())=>lisbonNow(at).time.slice(0,2)==='18';
-export const preparationEmailEnabled=()=>String((env as any).CARE_TEAM_EMAIL_ENABLED)==='true'&&mailReady();
+export const preparationEmailEnabled=async(a:Identity)=>String((env as any).CARE_TEAM_EMAIL_ENABLED)==='true'&&await mailReady(a);
 type VerifiedMember={therapist:string;email:string};
 
 // A profile email alone is insufficient: the exact address must have an enabled
@@ -25,22 +26,18 @@ async function updateNotice(a:Identity,id:string,patch:Record<string,unknown>){
 }
 
 async function notifyTherapists(a:Identity,date:string){
- if(!preparationEmailEnabled())return {accepted:0,failed:0,enabled:false};
+ if(!await preparationEmailEnabled(a))return {accepted:0,failed:0,enabled:false};
  const rows=await allRecords(a);
  const members=await db().prepare("SELECT m.therapist,m.email FROM memberships m WHERE m.clinic=? AND m.enabled=1 AND EXISTS(SELECT 1 FROM audit a WHERE a.id='first-access:'||m.id AND a.clinic=m.clinic AND a.action='first_professional_access')").bind(a.tenant).all<VerifiedMember>();
  let accepted=0,failed=0;
+ const mail=await prepareMail(a);
  for(const recipient of preparationRecipients(rows,members.results,date)){
   const id='preparation-email-'+date+'-'+recipient.therapist;
   const note=notification(id,{name:'Aviso de preparação por email',directorOnly:true,type:'preparationEmail',therapist:recipient.therapist,date,recipient:recipient.email,status:'A enviar',body:'Aviso de disponibilidade da preparação. O email não contém dados clínicos.'});
   // The immutable daily claim prevents duplicate sends, including concurrent
   // native/external scheduler runs and a retry after a provider timeout.
   if(!(await insertRecord(a,note).run()).meta.changes)continue;
-  let status='Resultado desconhecido';
-  try{
-   const response=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:'Bearer '+(env as any).RESEND_API_KEY,'Content-Type':'application/json','Idempotency-Key':a.tenant+'/'+id},body:JSON.stringify({from:(env as any).MAIL_FROM,to:[recipient.email],subject:'Bem Crescer — preparação das próximas sessões',text:'As preparações das suas sessões de '+date+' estão disponíveis na Bem Crescer. Entre na sua área profissional para consultar os objetivos, o trabalho anterior e as orientações para a próxima sessão.\n\n'+APP_URL}),signal:AbortSignal.timeout(15000)});
-   const result:any=await response.json();
-   status=response.ok&&result.id?'Aceite pelo serviço':'Falhou';
-  }catch{status='Resultado desconhecido'}
+  const {status}=await mail.send({to:recipient.email,subject:'Bem Crescer — preparação das próximas sessões',text:'As preparações das suas sessões de '+date+' estão disponíveis na Bem Crescer. Entre na sua área profissional para consultar os objetivos, o trabalho anterior e as orientações para a próxima sessão.\n\n'+APP_URL,id:a.tenant+'/'+id});
   const finishedAt=new Date().toISOString();
   await updateNotice(a,id,{status,finishedAt,body:'Destinatário: '+recipient.email+'. Estado: '+status+'. O aviso contém apenas a ligação à área profissional. Aceitação pelo serviço não confirma entrega.'});
   if(status==='Aceite pelo serviço')accepted++;else failed++;

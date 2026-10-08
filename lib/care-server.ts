@@ -1,9 +1,9 @@
-import {env} from 'cloudflare:workers';
 import {db,AppError,Identity,allRecords} from './server';
 import type {Rec} from './model';
 import type {Statement} from './supabase-database';
 import {preparation,lisbonNow,nextDay,attendanceNoticeChanges} from './care';
-export const mailReady=()=>Boolean((env as any).RESEND_API_KEY&&(env as any).MAIL_FROM);
+import {prepareMail} from './mail-server';
+export {mailReady} from './mail-server';
 export function insertRecord(a:Identity,r:Rec,guard?:{id:string;op:string}){const now=new Date().toISOString();return db().prepare(`INSERT OR IGNORE INTO records(id,clinic,kind,data,author,version,updated) SELECT ?,?,?,?,?,1,? ${guard?"WHERE EXISTS(SELECT 1 FROM records WHERE id=? AND json_extract(data,'$.mutationId')=?)":''}`).bind(a.tenant+':'+r.id,a.tenant,r.kind,JSON.stringify(r.data),a.user.userId,now,...(guard?[a.tenant+':'+guard.id,guard.op]:[]))}
 export function notification(id:string,data:any):Rec{return {id,kind:'careNotice',version:0,data:{...data,createdAt:new Date().toISOString()}}}
 export async function atomicSave(a:Identity,r:Rec,prev:Rec|undefined,extras:(guard:{id:string;op:string})=>Statement[]=()=>[],dependencies:{id:string;version:number}[]=[]){
@@ -21,11 +21,10 @@ export async function runClinic(a:Identity,options:{preparationOnly?:boolean}={}
  return {prepared:statements.length};
 }
 export async function sendDelivery(a:Identity,delivery:Rec,patient:Rec){
- if(!mailReady())throw new AppError('O serviço de email ainda não está configurado. Pode partilhar o texto revisto manualmente.',503);
+ const mail=await prepareMail(a);
  const lock=await db().prepare("UPDATE records SET data=json_set(data,'$.status','A enviar'),version=version+1 WHERE id=? AND clinic=? AND json_extract(data,'$.status')='Preparado' AND EXISTS(SELECT 1 FROM records WHERE id=? AND clinic=? AND version=?)").bind(a.tenant+':'+delivery.id,a.tenant,a.tenant+':'+patient.id,a.tenant,patient.version).run();
  if(!lock.meta.changes)throw new AppError('Este envio já foi processado. Consulte o histórico.',409);
- let status='Resultado desconhecido',providerId='';
- try{const response=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:'Bearer '+(env as any).RESEND_API_KEY,'Content-Type':'application/json','Idempotency-Key':a.tenant+'/'+delivery.id},body:JSON.stringify({from:(env as any).MAIL_FROM,to:[delivery.data.recipient],subject:'Sumário de acompanhamento',text:delivery.data.body}),signal:AbortSignal.timeout(15000)});const j:any=await response.json();if(response.ok&&j.id){status='Aceite pelo serviço';providerId=j.id}else status='Falhou';}catch{status='Resultado desconhecido'}
- const now=new Date().toISOString();await db().batch([db().prepare("UPDATE records SET data=json_set(data,'$.status',?,'$.providerId',?,'$.processedAt',?),version=version+1,updated=? WHERE id=? AND clinic=?").bind(status,providerId,now,now,a.tenant+':'+delivery.id,a.tenant),insertRecord(a,notification('sent-'+delivery.id,{name:'Partilha do sumário: '+status,patientId:delivery.data.patientId,directorOnly:true,type:'delivery',body:'Destinatário: '+delivery.data.recipient+'. Consulte o histórico de partilhas.',deliveryId:delivery.id}))]);
+ const {status,providerId,provider}=await mail.send({to:delivery.data.recipient,subject:'Sumário de acompanhamento',text:delivery.data.body,id:a.tenant+'/'+delivery.id});
+ const now=new Date().toISOString();await db().batch([db().prepare("UPDATE records SET data=json_set(data,'$.status',?,'$.providerId',?,'$.provider',?,'$.processedAt',?),version=version+1,updated=? WHERE id=? AND clinic=?").bind(status,providerId,provider,now,now,a.tenant+':'+delivery.id,a.tenant),insertRecord(a,notification('sent-'+delivery.id,{name:'Partilha do sumário: '+status,patientId:delivery.data.patientId,directorOnly:true,type:'delivery',body:'Destinatário: '+delivery.data.recipient+'. Consulte o histórico de partilhas. Aceitação pelo serviço não confirma entrega.',deliveryId:delivery.id}))]);
  return status;
 }

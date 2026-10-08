@@ -83,7 +83,8 @@ sqlite.exec('CREATE TABLE records(id TEXT PRIMARY KEY,clinic TEXT,kind TEXT,data
 const database={prepare(sql){return{bind(...args){return{async run(){return{meta:{changes:Number(sqlite.prepare(sql).run(...args).changes)}}},async all(){return{results:sqlite.prepare(sql).all(...args)}}}}}},async batch(statements){const result=[];sqlite.exec('BEGIN');try{for(const statement of statements)result.push(await statement.run());sqlite.exec('COMMIT');return result}catch(error){sqlite.exec('ROLLBACK');throw error}}};
 globalThis.operationsTest={db:database};
 const server=url(`export const db=()=>globalThis.operationsTest.db;export class AppError extends Error{};export async function allRecords(a){const rows=await db().prepare('SELECT * FROM records WHERE clinic=?').bind(a.tenant).all();return rows.results.map(r=>({...r,id:r.id.slice(a.tenant.length+1),data:JSON.parse(r.data)}))}`);
-const careServer=url(compile('lib/care-server.ts').replace("'cloudflare:workers'",JSON.stringify(url('export const env={}'))).replace("'./server'",JSON.stringify(server)).replace("'./care'",JSON.stringify(careUrl)));
+const mailServer=url('export const mailReady=async()=>false;export async function prepareMail(){throw Error("Email not configured in operations tests")}');
+const careServer=url(compile('lib/care-server.ts').replace("'cloudflare:workers'",JSON.stringify(url('export const env={}'))).replace("'./server'",JSON.stringify(server)).replaceAll("'./mail-server'",JSON.stringify(mailServer)).replace("'./care'",JSON.stringify(careUrl)));
 const {runClinic}=await import(careServer);
 const put=(r,clinic='c')=>sqlite.prepare('INSERT OR REPLACE INTO records VALUES(?,?,?,?,?,?,?)').run(clinic+':'+r.id,clinic,r.kind,JSON.stringify(r.data),'u',r.version,stamp);
 const get=id=>{const r=sqlite.prepare('SELECT * FROM records WHERE id=?').get(id);return {...r,data:JSON.parse(r.data)}};

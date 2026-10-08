@@ -6,6 +6,8 @@
  "triggers":{"crons":["5 17,18 * * *"]},
  "vars":{
   "CARE_SCHEDULER_MODE":"cloudflare",
+  "CARE_TEAM_EMAIL_ENABLED":"true",
+  "GMAIL_SENDER_EMAIL":"centro.bemcrescer@gmail.com",
   "SUPABASE_URL":"https://mwbtdncxfsixxlivwlzz.supabase.co",
   "SUPABASE_PUBLISHABLE_KEY":"sb_publishable_KI716sTaoLQiw7N0ztXI-g_kIZWgaXd",
   "CLINIC_OWNER_EMAIL":"as.lcorreia@gmail.com"

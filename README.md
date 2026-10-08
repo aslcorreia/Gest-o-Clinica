@@ -29,7 +29,7 @@ O endereço escolhido na Cloudflare é `https://gest-o-clinica.as-lcorreia.worke
 
 A entrada usa o link enviado pelo Supabase. Não exige alterar o modelo de email. O campo de código funciona se o email incluir um código. A entrada por palavra-passe destina-se a contas que já tenham uma palavra-passe no Supabase.
 
-Para enviar links a terapeutas e famílias que não sejam membros da organização Supabase, configurar SMTP próprio. O serviço de email predefinido tem restrições de destinatários. Sumários no painel dos pais funcionam através de publicações revistas; email externo dos sumários depende separadamente de `RESEND_API_KEY` e `MAIL_FROM`.
+Para enviar links a terapeutas e famílias que não sejam membros da organização Supabase, configurar SMTP próprio. O serviço de email predefinido tem restrições de destinatários. Sumários no painel dos pais funcionam através de publicações revistas; email externo dos sumários depende separadamente da ligação Gmail da clínica (`centro.bemcrescer@gmail.com`) ou de um serviço Resend configurado. A autorização Gmail permite apenas envio e identificação da conta, sem ler a caixa de entrada.
 
 ## Primeira utilização
 
@@ -55,7 +55,7 @@ Para desenvolvimento com a base real, definir `SUPABASE_SECRET_KEY` num ficheiro
 
 ## Limites atuais
 
-Falta validar a primeira entrada das terapeutas e famílias, SMTP, email externo dos sumários e reposição de cópias de segurança. A preparação atualiza-se enquanto a aplicação está aberta. O Worker inclui preparação diária às 18:05 de Lisboa, com ajuste de verão/inverno, deduplicação e estado de execução em Avisos e partilhas. A primeira execução automática em produção ainda deve ser confirmada. O email à equipa exige `CARE_TEAM_EMAIL_ENABLED=true`, serviço configurado, preferência explícita e primeiro acesso profissional confirmado; está desativado por defeito. Teleconsulta abre uma ligação Meet/Zoom/Teams/Whereby; criação de Meet e calendário Google requerem ativação OAuth. Emissão fiscal não está integrada. Não foram importados pacientes da versão alojada no ChatGPT.
+Falta validar a primeira entrada das terapeutas e famílias, SMTP, email externo dos sumários e reposição de cópias de segurança. A preparação atualiza-se enquanto a aplicação está aberta. O Worker inclui preparação diária às 18:05 de Lisboa, com ajuste de verão/inverno, deduplicação e estado de execução em Avisos e partilhas. A primeira execução automática em produção ainda deve ser confirmada. O email à equipa exige `CARE_TEAM_EMAIL_ENABLED=true`, serviço configurado, preferência explícita e primeiro acesso profissional confirmado; nenhuma terapeuta é inscrita automaticamente. A direção autoriza o Gmail da clínica para sumários e avisos; o SMTP dos links de entrada é separado. Teleconsulta abre uma ligação Meet/Zoom/Teams/Whereby; criação de Meet e calendário Google requerem ativação OAuth. Emissão fiscal não está integrada. Não foram importados pacientes da versão alojada no ChatGPT.
 
 Referências: [Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/), [Supabase login por email](https://supabase.com/docs/guides/auth/auth-email-passwordless), [SMTP](https://supabase.com/docs/guides/auth/auth-smtp).
 

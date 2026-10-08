@@ -1,12 +1,14 @@
 CREATE TABLE IF NOT EXISTS public.integration_connections (
  clinic text NOT NULL REFERENCES public.clinics(id),
  user_id text NOT NULL,
- provider text NOT NULL CHECK(provider='google'),
+ provider text NOT NULL CHECK(provider IN('google','gmail')),
  payload text NOT NULL,
  version integer NOT NULL CHECK(version>0),
  updated text NOT NULL,
  PRIMARY KEY(clinic,user_id,provider)
 );
+ALTER TABLE public.integration_connections DROP CONSTRAINT IF EXISTS integration_connections_provider_check;
+ALTER TABLE public.integration_connections ADD CONSTRAINT integration_connections_provider_check CHECK(provider IN('google','gmail'));
 ALTER TABLE public.integration_connections ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.integration_connections FROM PUBLIC, anon, authenticated;
 GRANT SELECT,INSERT,UPDATE,DELETE ON public.integration_connections TO service_role;
